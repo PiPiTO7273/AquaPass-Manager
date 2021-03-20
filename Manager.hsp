@@ -1,0 +1,111 @@
+
+#runtime"hsp3cl"
+#include"hspinet.as"
+
+//official-key
+//bqjEPAQh1ZmiQpFbXLbtVBdR8p1z0yF6IkZHJO74UfvfCX2hhoDr8zaAEmvAKb0fls4kcIoqKMwWnUhAqI5EzDpDyvy2PyXCPeaF1N5JlH3AxUXPeHRxeE8j1BNE9mo0
+
+mes""
+mes" _______  _______  __   __  _______  _______  _______  _______  _______"
+mes"|   _   ||       ||  | |  ||   _   ||       ||   _   ||       ||       |"
+mes"|  |_|  ||   _   ||  | |  ||  |_|  ||    _  ||  |_|  ||  _____||  _____|"
+mes"|       ||  | |  ||  |_|  ||       ||   |_| ||       || |_____ | |_____"
+mes"|       ||  |_|  ||       ||       ||    ___||       ||_____  ||_____  |"
+mes"|   _   ||      | |       ||   _   ||   |    |   _   | _____| | _____| |"
+mes"|__| |__||____||_||_______||__| |__||___|    |__| |__||_______||_______|"
+mes""
+mes""
+mes"AquaPass Manager"
+mes"(c) 2019-"+gettime(0)+" PiPiTO Software."
+mes""
+mes"コマンドのヘルプを参照する場合は、「HELP」を入力してください。"
+mes""
+
+*Main
+
+	sdim cmdMain,256
+	input cmdMain,256,2
+	mes"Admin > "+cmdMain+"\n"
+
+	sdim divprm
+	split cmdMain," ",divprm
+
+	switch divprm(0)
+		case"help"
+			mes"HELP	コマンドのヘルプを確認します。"
+			mes"OPEN	サーバーに接続します。"
+			mes"REG     アカウントを作成します。"
+			mes"GET     アカウントの情報を取得します。"
+			mes"EXIT    終了します。"
+		swbreak
+		case"open"
+			if instr(cmdMain,0,"-?")!-1 {
+				mes"OPEN [host] [username] [password]"
+				mes"サーバーに接続します。"
+				mes"[host]      接続先のサーバーアドレス"
+				mes"[username]  接続するユーザー名"
+				mes"[password]  接続するパスワード"
+			}
+			if length(divprm)==4 {
+				mes"サーバー\""+divprm(1)+"\"にユーザー名\""+divprm(2)+"\"、パスワード\"****\"でログインします。\n"
+				mes"ネットワーク機能の初期化中・・・"
+				netinit
+				mes"サーバーに接続中・・・"
+				ftpopen divprm(1),divprm(2),divprm(3)
+				sdim curftpdir
+				ftpdir curftpdir,"aqsavedata"
+				if stat!0 {
+					mes"接続に失敗しました。[ERR."+stat+"]"
+				} else {
+					mes"接続完了"
+				}
+			} else {
+				mes"コマンドの構文に誤りがあります。"
+			}
+		swbreak
+		case"reg"
+			if instr(cmdMain,0,"-?")!-1 {
+				mes"REG [username] [password] [key]"
+				mes"AquaPassアカウントを作成します。"
+				mes"[username]  ユーザー名"
+				mes"[password]  パスワード"
+				meS"[key]       暗号化キー"
+				mes""
+				mes"* 暗号化キーはクライアントで使用するキーと同一にしてください。"
+			}
+			if length(divprm)==4 {
+				mes"ユーザー名\""+divprm(1)+"\"、パスワード\"****\"のアカウントを新規作成します。"
+				mes"暗号化処理中・・・"
+				sdim uploadbuf
+				uploadbuf="[SAVEDATA]\n"
+				uploadbuf+"USERNAME="+divprm(1)+"\n"
+				sdim passencbuf:sdim pass64buf
+				passencbuf=divprm(2)
+				rc4encode passencbuf,divprm(3)
+				b64encode pass64buf,passencbuf
+				uploadbuf+"PASSWORD="+pass64buf+"\n"
+				notesel uploadbuf
+				notesave"aqsavedata.dat"
+				mes"アップロード中・・・"
+				ftpput"","aqsavedata.dat",0
+				if stat!0 {
+					mes"リクエストの送信に失敗しました。"
+				} else {
+					mes"アカウントの作成が完了しました。"
+				}
+			} else {
+				mes"コマンドの構文に誤りがあります。"
+			}
+		swbreak
+		case"get"
+		swbreak
+		case"exit"
+			end
+		swbreak
+		default
+			mes"[ERROR] - 「"+cmdMain+"」は有効なコマンドとして認識されていません。"
+		swbreak
+	swend
+	mes""
+
+	goto*Main
