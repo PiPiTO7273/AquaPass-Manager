@@ -261,21 +261,42 @@ mes"コマンドのヘルプを参照する場合は、「HELP」を入力してください。\n"
 
 		//アカウント一覧を取得
 		case"list"
-			ftpdirlist
-			dim FTPres
-			repeat
-				netexec FTPres
-				if FTPres==1 :break
-				await
-			loop
-			if stat==0 {
-				sdim AccountList
-				ftpdirlist2 AccountList
-				strrep AccountList,".dat",""
-				mes"--ACCOUNT LIST--"
-				mes AccountList
+			if instr(cmdMain,0,"-?")!-1 {
+				mes"LIST"
+				mes"アカウントの一覧を取得します。"
 			} else {
-				mes"LISTコマンドを実行する前に、サーバーに接続してください。"
+				mes"アカウントの一覧を取得します。"
+				ftpdirlist
+				dim FTPres
+				repeat
+					netexec FTPres
+					if FTPres!0 :break
+					await 50
+				loop
+				if stat==0 {
+					sdim Curdirlist
+					sdim AccountList
+					sdim DummyPrm
+					ftpdirlist2 Curdirlist
+					strrep Curdirlist,"\"",""
+					notesel Curdirlist
+
+					//解析、描画 
+					mes"--ACCOUNT LIST--"
+					repeat notemax
+						noteget NoteLine,cnt
+
+						//コンマで分ける
+						split NoteLine,",",AccountList(cnt),DummyPrm
+						strrep AccountList(cnt),".dat",""
+						//.と..を除外
+						if AccountList(cnt)=="." :continue
+						if AccountList(cnt)=="..":continue
+						mes"ユーザー名     "+AccountList(cnt)
+					loop
+				} else {
+					mes"LISTコマンドを実行する前に、サーバーに接続してください。"
+				}
 			}
 		swbreak
 
