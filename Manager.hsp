@@ -3,56 +3,83 @@
 #include"hspinet.as"
 #include"hspext.as"
 
+goto*Startup
+#include"Function_Auth.hsp"
+
 //official-key
 //bqjEPAQh1ZmiQpFbXLbtVBdR8p1z0yF6IkZHJO74UfvfCX2hhoDr8zaAEmvAKb0fls4kcIoqKMwWnUhAqI5EzDpDyvy2PyXCPeaF1N5JlH3AxUXPeHRxeE8j1BNE9mo0
-#define ServiceHost			"sv3.html.xdomain.ne.jp"
-#define ServiceUserName		"pipito7273.html.xdomain.jp"
-#define ServicePassword		"rw63BEB-Q4a2-afJ"
+//sv3.html.xdomain.ne.jp
+//pipito7273.html.xdomain.jp
+//rw63BEB-Q4a2-afJ
 
-mes""
-mes" _______  _______  __   __  _______  _______  _______  _______  _______"
-mes"|   _   ||       ||  | |  ||   _   ||       ||   _   ||       ||       |"
-mes"|  |_|  ||   _   ||  | |  ||  |_|  ||    _  ||  |_|  ||  _____||  _____|"
-mes"|       ||  | |  ||  |_|  ||       ||   |_| ||       || |_____ | |_____"
-mes"|       ||  |_|  ||       ||       ||    ___||       ||_____  ||_____  |"
-mes"|   _   ||      | |       ||   _   ||   |    |   _   | _____| | _____| |"
-mes"|__| |__||____||_||_______||__| |__||___|    |__| |__||_______||_______|"
-mes""
-mes""
+*Startup
+
+mes{"\n
+	_______  _______  ______   _______  _______  ___        _______  _______  _______  ___      _______
+	|       ||       ||    _ | |       ||   _   ||   |      |       ||       ||       ||   |    |       |
+	|    _  ||   _   ||   | || |_     _||  |_|  ||   |      |_     _||   _   ||   _   ||   |    |  _____|
+	|   |_| ||  | |  ||   |_||   |   |  |       ||   |        |   |  |  | |  ||  | |  ||   |    | |_____
+	|    ___||  |_|  ||    __ |  |   |  |       ||   |___     |   |  |  |_|  ||  |_|  ||   |___ |_____  |
+	|   |    |       ||   |  ||  |   |  |   _   ||       |    |   |  |       ||       ||       | _____| |
+	|___|    |_______||___|  ||  |___|  |__| |__||_______|    |___|  |_______||_______||_______||_______|
+
+"}
 mes"AquaPass Manager"
 mes"(c) 2019-"+gettime(0)+" PiPiTO Software."
 mes""
 
 mes"キャッシュの初期化中・・・"
-
-sdim pipeout
-pipeexec pipeout,"RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 8"
-repeat
-	dim piperes
-	pipeget piperes
-	if stat==0 :break
-	wait 100
-loop
+PortalSvc_Cleanup
 
 mes"準備完了"
-mes"コマンドのヘルプを参照する場合は、「HELP」を入力してください。"
+
+sdim AutoBatch:dim AutoBatchNumTask
+AutoBatch+"open sv3.html.xdomain.ne.jp pipito7273.html.xdomain.jp rw63BEB-Q4a2-afJ\n"
+AutoBatch+"key bqjEPAQh1ZmiQpFbXLbtVBdR8p1z0yF6IkZHJO74UfvfCX2hhoDr8zaAEmvAKb0fls4kcIoqKMwWnUhAqI5EzDpDyvy2PyXCPeaF1N5JlH3AxUXPeHRxeE8j1BNE9mo0\n"
+mes"タスク\"AUTOBATCH\"を実行中"
+notesel AutoBatch
+AutoBatchNumTask=notemax
+repeat AutoBatchNumTask
+	notesel AutoBatch
+	noteget cmdMain,cnt
+	gosub*Execute
+loop
+
+mes"コマンドのヘルプを参照する場合は、「HELP」を入力してください。\n"
 
 *Main
 
-	sdim cmdMain,256
-	input cmdMain,256,2
+	sdim cmdMain,512
+	input cmdMain,512,2
+	mes""
+	gosub*Execute
+	mes""
 
-	sdim divprm
+	goto*Main
+
+*Execute
+	sdim divprm,512
 	split cmdMain," ",divprm
 
-	switch divprm(0)
+	switch getpath(divprm(0),16)
+		//ヘルプ
 		case"help"
-			mes"HELP	コマンドのヘルプを確認します。"
-			mes"OPEN	サーバーに接続します。"
+			mes"HELP    コマンドのヘルプを確認します。"
+			mes"OPEN    サーバーに接続します。"
+			mes"KEY     暗号化キーを指定します。"
 			mes"REG     アカウントを作成します。"
 			mes"GET     アカウントの情報を取得します。"
+			mes"GETRAW  アカウントの情報のデータ本体を表示します。"
+			mes"REMOVE  アカウントを削除します。"
+			mes"SELECT  アカウントを選択します。"
+			mes"ADD     セーブデータを追加します。"
+			mes"LIST    アカウント一覧を取得する。"
 			mes"EXIT    終了します。"
+			mes""
+			mes"各コマンドの詳細を参照する場合、パラメータに\"-?\"を指定してください。"
 		swbreak
+
+		//サーバーに接続
 		case"open"
 			if instr(cmdMain,0,"-?")!-1 {
 				mes"OPEN [host] [username] [password]"
@@ -60,181 +87,207 @@ mes"コマンドのヘルプを参照する場合は、「HELP」を入力してください。"
 				mes"[host]      接続先のサーバーアドレス"
 				mes"[username]  接続するユーザー名"
 				mes"[password]  接続するパスワード"
-			}
-			if length(divprm)==4 {
-				mes"サーバー\""+divprm(1)+"\"にユーザー名\""+divprm(2)+"\"、パスワード\"****\"でログインします。\n"
-				mes"ネットワーク機能の初期化中・・・"
-				netinit
-				mes"サーバーに接続中・・・"
-				ftpopen divprm(1),divprm(2),divprm(3)
-				sdim curftpdir
-				ftpdir curftpdir,"aqsavedata"
-				if stat!0 {
-					mes"接続に失敗しました。[ERR."+stat+"]"
-				} else {
-					mes"接続完了"
-				}
 			} else {
-				mes"コマンドの構文に誤りがあります。"
+				if length(divprm)==4 {
+					mes"サーバー\""+divprm(1)+"\"にユーザー名\""+divprm(2)+"\"、パスワード\"****\"でログインします。\n"
+					PortalSvc_Connect divprm(1),divprm(2),divprm(3)
+					if stat==0 {
+						mes"接続に成功しました。"
+					} else {
+						mes"接続に失敗しました。"
+					}
+				} else {
+					mes"コマンドの構文に誤りがあります。"
+				}
 			}
 		swbreak
+
+		//暗号化キー指定
+		case"key"
+			PortalSvc_RegKey divprm(1)
+			mes"暗号化キーの登録が完了しました。"
+		swbreak
+
+		//アカウント作成
 		case"reg"
 			if instr(cmdMain,0,"-?")!-1 {
-				mes"REG [username] [password] [key]"
-				mes"AquaPassアカウントを作成します。"
+				mes"REG [username] [password]"
+				mes"Portalアカウントを作成します。"
 				mes"[username]  ユーザー名"
 				mes"[password]  パスワード"
-				meS"[key]       暗号化キー"
-				mes""
-				mes"* 暗号化キーはクライアントで使用するキーと同一にしてください。"
-			}
-			if length(divprm)==4 {
-				mes"ユーザー名\""+divprm(1)+"\"、パスワード\"****\"のアカウントを新規作成します。"
-				mes"暗号化処理中・・・"
-				sdim uploadbuf
-				uploadbuf="[SAVEDATA]\n"
-				uploadbuf+"USERNAME="+divprm(1)+"\n"
-				sdim passencbuf:sdim pass64buf
-				passencbuf=divprm(2)
-				rc4encode passencbuf,divprm(3)
-				b64encode pass64buf,passencbuf
-				uploadbuf+"PASSWORD="+pass64buf+"\n"
-				uploadbuf+"REG.DATE="+gettime(0)+"/"+gettime(1)+"/"+gettime(3)+"\n"
-				notesel uploadbuf
-				notesave"aqsavedata.dat"
-				mes"アップロード中・・・"
-				ftpput""+divprm(1)+".dat","aqsavedata.dat",0
-				if stat!0 {
-					mes"リクエストの送信に失敗しました。"
-				} else {
-					mes"アカウントの作成が完了しました。"
-				}
-				delete"aqsavedata.dat"
 			} else {
-				mes"コマンドの構文に誤りがあります。"
+				if length(divprm)==3 {
+					mes"ユーザー名\""+divprm(1)+"\"、パスワード\"****\"のアカウントを新規作成します。"
+					sdim SaveBuf
+					SaveBuf="[SAVEDATA]\n"
+					SaveBuf+"USERNAME="+divprm(1)+"\n"
+					SaveBuf+"PASSWORD="+PortalSvc_Encode(divprm(2))+"\n"
+					SaveBuf+"REG.DATE="+gettime(0)+"/"+gettime(1)+"/"+gettime(3)+"\n"
+					PortalSvc_Update divprm(1),SaveBuf
+					if stat!0 {
+						mes"アカウントの作成に失敗しました。"
+					} else {
+						mes"アカウントの作成が完了しました。"
+					}
+				} else {
+					mes"コマンドの構文に誤りがあります。"
+				}
 			}
 		swbreak
+
+		//アカウントの情報を取得
 		case"get"
 			if instr(cmdMain,0,"-?")!-1 {
-				mes"GET [username] [password] [key] [flag]"
-				mes"AquaPassアカウントの情報を取得します。"
+				mes"GET [username] [password] [flag]"
+				mes"Portalアカウントの情報を取得します。"
 				mes"[username]  ユーザー名"
 				mes"[password]  パスワード"
-				mes"[key]       暗号化キー"
 				mes"[flag]      フラグ"
 				mes"\"-h\"フラグを有効にすると、パスワードを\"*\"で隠します。"
-			}
-			if length(divprm)>=4 {
-				mes"ユーザー名\""+divprm(1)+"\"のアカウント情報を取得します。"
-				mes"データ取得中・・・"
-				ftpget divprm(1)+".dat","aqsavedata.dat",0
-				exist"aqsavedata.dat"
-				if strsize==-1 {
-					mes"ダウンロードに失敗しました。"
-				} else {
-					mes"ダウンロードが完了しました。"
-					mes"解析中・・・"
-					sdim downloadbuf
-					sdim INIKey
-					sdim INIVal
-					sdim username
-					sdim password
-					sdim regdate
-					notesel downloadbuf
-					noteload"aqsavedata.dat"
-					repeat notemax
-						sdim NoteLine
-						noteget NoteLine,cnt
-						split NoteLine,"=",INIKey,INIVal
-						switch INIKey
-							case"USERNAME":UserName=INIVal:swbreak
-							case"PASSWORD"
-								Password=INIVal
-								b64decode Password,Password
-								rc4encode Password,divprm(3)
-							swbreak
-							case"REG.DATE"
-								regdate=INIVal
-							swbreak
-						swend
-					loop
-					delete"aqsavedata.dat"
-					if Password==divprm(2) {
-							mes"ユーザー名     "+UserName
+			} else {
+				if length(divprm)>=3 {
+					mes"ユーザー名\""+divprm(1)+"\"のアカウント情報を取得します。"
+					PortalSvc_GetData divprm(1),divprm(2)
+					if divprm(2)==Info_Password {
+						//表示
+							mes"ユーザー名    "+Info_UserName
 						if instr(cmdMain,0,"-h")==-1 {
-							mes"パスワード     "+Password
+							mes"パスワード    "+Info_Password
 						}
-							mes"登録日時       "+regdate
+							mes"登録日時      "+Info_RegDate
 					} else {
 						mes"パスワードが違います。"
 					}
+				} else {
+					mes"コマンドの構文に誤りがあります。"
 				}
-			} else {
-				mes"コマンドの構文に誤りがあります。"
 			}
 		swbreak
-		case"remove"
+
+		//アカウントの情報を取得（データ本体）
+		case"getraw"
 			if instr(cmdMain,0,"-?")!-1 {
-				mes"REMOVE [username] [password] [key]"
-				mes"AquaPassアカウントを削除します。"
+				mes"GETRAW [username] [password]"
+				mes"Portalアカウントの情報のデータ本体を表示します。"
 				mes"[username]  ユーザー名"
 				mes"[password]  パスワード"
-				mes"[key]       暗号化キー"
-				mes"(!) 一度削除すると復元はできません。"
-			}
-			if length(divprm)==4 {
-				mes"ユーザー名\""+divprm(1)+"\"のアカウントを削除します。"
-				mes"データ取得中・・・"
-				ftpget divprm(1)+".dat","aqsavedata.dat",0
-				exist"aqsavedata.dat"
-				if strsize==-1 {
-					mes"接続に失敗しました。"
+			} else {
+				if length(divprm)==3 {
+					mes"ユーザー名\""+divprm(1)+"\"のアカウントのデータ本体を取得します。"
+					PortalSvc_GetData divprm(1),divprm(2)
+					if divprm(2)==Info_Password {
+						mes"--RAW DATA--\n"
+						mes refstr
+					} else {
+						mes"パスワードが違います。"
+					}
 				} else {
-					mes"パスワード照合中・・・"
-					sdim downloadbuf
-					sdim INIKey
-					sdim INIVal
-					sdim username
-					sdim password
-					sdim regdate
-					notesel downloadbuf
-					noteload"aqsavedata.dat"
-					repeat notemax
-						sdim NoteLine
-						noteget NoteLine,cnt
-						split NoteLine,"=",INIKey,INIVal
-						switch INIKey
-							case"USERNAME":UserName=INIVal:swbreak
-							case"PASSWORD"
-								Password=INIVal
-								b64decode Password,Password
-								rc4encode Password,divprm(3)
-							swbreak
-							case"REG.DATE"
-								regdate=INIVal
-							swbreak
-						swend
-					loop
-					delete"aqsavedata.dat"
-					if Password==divprm(2) {
-						mes"削除中・・・"
-						ftpdelete divprm(1)+".dat"
+					mes"コマンドの構文に誤りがあります。"
+				}
+			}
+		swbreak
+
+		//アカウントを削除
+		case"remove"
+			if instr(cmdMain,0,"-?")!-1 {
+				mes"REMOVE [username] [password]"
+				mes"Portalアカウントを削除します。"
+				mes"[username]  ユーザー名"
+				mes"[password]  パスワード"
+				mes"(!) 一度削除すると復元はできません。"
+			} else {
+				if length(divprm)==3 {
+					PortalSvc_Auth divprm(1),divprm(2)
+					if stat==0 {
+						PortalSvc_Remove divprm(1)
 						mes"アカウントの削除が完了しました。"
 					} else {
 						mes"パスワードが違います。"
 					}
+				} else {
+					mes"コマンドの構文に誤りがあります。"
 				}
-			} else {
-				mes"コマンドの構文に誤りがあります。"
 			}
 		swbreak
+
+		//アカウントを選択
+		case"select"
+			if instr(cmdMain,0,"-?")!-1 {
+				mes"SELECT [username] [password]"
+				mes"Portalアカウントを選択します。"
+				mes"[username]  ユーザー名"
+				mes"[password]  パスワード"
+			} else {
+				if length(divprm)==3 {
+					sdim curUserName
+					sdim curPassword
+					curUserName=divprm(1)
+					curPassword=divprm(2)
+					PortalSvc_Auth divprm(1),divprm(2)
+					if stat==0 {
+						mes"ユーザー名\""+curUserName+"\"を選択しました。"
+					} else {
+						mes"パスワードが違います。"
+						sdim curUserName
+						sdim curPassword
+					}
+				} else {
+					mes"コマンドの構文に誤りがあります。"
+				}
+			}
+		swbreak
+
+		//セーブデータを追加
+		case"add"
+			if instr(cmdMain,0,"-?")!-1 {
+				mes"ADD [string]"
+				mes"セーブデータを追加します。"
+				mes"[string]    追加するセーブデータの文字列"
+			} else {
+				mes"ユーザー名\""+curUserName+"\"のアカウントにセーブデータを追加します。"
+				sdim SaveBuf
+				strrep cmdMain,strmid(cmdMain,0,4),""
+				PortalSvc_GetData curUserName,curPassword
+				SaveBuf=refstr
+				SaveBuf+cmdMain+"\n"
+				PortalSvc_Update curUserName,SaveBuf
+				if stat!0 {
+					mes"セーブデータの追加に失敗しました。"
+				} else {
+					mes"セーブデータの追加が完了しました。"
+				}
+			}
+		swbreak
+
+		//アカウント一覧を取得
+		case"list"
+			ftpdirlist
+			dim FTPres
+			repeat
+				netexec FTPres
+				if FTPres==1 :break
+				await
+			loop
+			if stat==0 {
+				sdim AccountList
+				ftpdirlist2 AccountList
+				strrep AccountList,".dat",""
+				mes"--ACCOUNT LIST--"
+				mes AccountList
+			} else {
+				mes"LISTコマンドを実行する前に、サーバーに接続してください。"
+			}
+		swbreak
+
+		//終了
 		case"exit"
 			end
 		swbreak
+
+		//無効なコマンド
 		default
 			mes"[ERROR] - 「"+cmdMain+"」は有効なコマンドとして認識されていません。"
 		swbreak
 	swend
-	mes""
 
-	goto*Main
+	return

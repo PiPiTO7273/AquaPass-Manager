@@ -1,0 +1,102 @@
+
+//サーバーに接続
+#deffunc PortalSvc_Connect str _host,str _username,str _password
+	netinit
+	ftpopen _host,_username,_password
+	sdim SvccurDir
+	ftpdir SvccurDir,"svcsavedata"
+	return stat
+
+//復号化キーを登録
+#deffunc PortalSvc_RegKey str _key
+	sdim DecPassKey,128
+	DecPassKey=_key
+	return
+
+//データ取得
+#deffunc PortalSvc_GetData str _username,str _password
+	if vartype(DecPassKey)!vartype("str") :mes"暗号化キーが設定されていません。":return		//復号化キーが未登録
+
+	//変数初期化
+		sdim INIKey,128
+		sdim INIVal,128
+		sdim NoteLine,256
+		sdim Info_UserName
+		sdim Info_Password
+		sdim Info_RegDate
+
+	//ダウンロード
+		ftpget _username+".dat","ftpdownload.tmp",0
+		exist"ftpdownload.tmp"
+		if strsize==-1 :return 2		//ダウンロード失敗
+		sdim SvcSavebuf,strsize
+
+	//解析
+		notesel SvcSavebuf
+		noteload"ftpdownload.tmp"
+		repeat notemax
+			noteget NoteLine,cnt
+			split NoteLine,"=",INIKey,INIVal
+			switch INIKey
+				case"USERNAME":Info_UserName=INIVal:swbreak
+				case"PASSWORD"
+					Info_Password=INIVal
+					b64decode Info_Password,Info_Password,64
+					rc4encode Info_Password,DecPassKey,64
+				swbreak
+				case"REG.DATE":Info_RegDate=INIVal:swbreak
+			swend
+		loop
+
+	//キャッシュ削除
+		delete"ftpdownload.tmp"
+		PortalSvc_Cleanup
+	return SvcSavebuf
+
+//ユーザーを認証
+#deffunc PortalSvc_Auth str _username,str _password
+	PortalSvc_GetData _username,_password
+	if Info_Password==_password {
+		return 0
+	} else {
+		return 1
+	}
+	return
+
+//セーブデータ更新
+#deffunc PortalSvc_Update str _username,str _buf
+	sdim SvcSavebuf:dim FTPres
+	SvcSavebuf=_buf
+	notesel SvcSavebuf
+	notesave"ftpupload.tmp"
+	ftpput _username+".dat","ftpupload.tmp",0
+	FTPres=stat
+	delete"ftpupload.tmp"
+	PortalSvc_Cleanup
+	return FTPres
+
+//アカウント削除
+#deffunc PortalSvc_Remove str _username
+	ftpdelete _username+".dat"
+	return stat
+
+//キャッシュ更新
+#deffunc PortalSvc_Cleanup
+	sdim pipeout
+	pipeexec pipeout,"RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 8"
+	repeat
+		dim piperes
+		pipeget piperes
+		if stat==0 :break
+		await
+	loop
+	return
+
+//パスワードをエンコード
+#defcfunc PortalSvc_Encode str _buf
+	if vartype(DecPassKey)!vartype("str") :mes"暗号化キーが設定されていません。":return""
+	sdim PassEncBuf,128
+	PassEncBuf=_buf
+	rc4encode PassEncBuf,DecPassKey,64
+	b64encode PassEncBuf,PassEncBuf,64
+	return PassEncBuf
