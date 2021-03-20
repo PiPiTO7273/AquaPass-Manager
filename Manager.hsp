@@ -1,9 +1,13 @@
 
 #runtime"hsp3cl"
 #include"hspinet.as"
+#include"hspext.as"
 
 //official-key
 //bqjEPAQh1ZmiQpFbXLbtVBdR8p1z0yF6IkZHJO74UfvfCX2hhoDr8zaAEmvAKb0fls4kcIoqKMwWnUhAqI5EzDpDyvy2PyXCPeaF1N5JlH3AxUXPeHRxeE8j1BNE9mo0
+#define ServiceHost			"sv3.html.xdomain.ne.jp"
+#define ServiceUserName		"pipito7273.html.xdomain.jp"
+#define ServicePassword		"rw63BEB-Q4a2-afJ"
 
 mes""
 mes" _______  _______  __   __  _______  _______  _______  _______  _______"
@@ -18,14 +22,25 @@ mes""
 mes"AquaPass Manager"
 mes"(c) 2019-"+gettime(0)+" PiPiTO Software."
 mes""
+
+mes"キャッシュの初期化中・・・"
+
+sdim pipeout
+pipeexec pipeout,"RunDll32.exe InetCpl.cpl,ClearMyTracksByProcess 8"
+repeat
+	dim piperes
+	pipeget piperes
+	if stat==0 :break
+	wait 100
+loop
+
+mes"準備完了"
 mes"コマンドのヘルプを参照する場合は、「HELP」を入力してください。"
-mes""
 
 *Main
 
 	sdim cmdMain,256
 	input cmdMain,256,2
-	mes"Admin > "+cmdMain+"\n"
 
 	sdim divprm
 	split cmdMain," ",divprm
@@ -84,20 +99,134 @@ mes""
 				rc4encode passencbuf,divprm(3)
 				b64encode pass64buf,passencbuf
 				uploadbuf+"PASSWORD="+pass64buf+"\n"
+				uploadbuf+"REG.DATE="+gettime(0)+"/"+gettime(1)+"/"+gettime(3)+"\n"
 				notesel uploadbuf
 				notesave"aqsavedata.dat"
 				mes"アップロード中・・・"
-				ftpput"","aqsavedata.dat",0
+				ftpput""+divprm(1)+".dat","aqsavedata.dat",0
 				if stat!0 {
 					mes"リクエストの送信に失敗しました。"
 				} else {
 					mes"アカウントの作成が完了しました。"
 				}
+				delete"aqsavedata.dat"
 			} else {
 				mes"コマンドの構文に誤りがあります。"
 			}
 		swbreak
 		case"get"
+			if instr(cmdMain,0,"-?")!-1 {
+				mes"GET [username] [password] [key] [flag]"
+				mes"AquaPassアカウントの情報を取得します。"
+				mes"[username]  ユーザー名"
+				mes"[password]  パスワード"
+				mes"[key]       暗号化キー"
+				mes"[flag]      フラグ"
+				mes"\"-h\"フラグを有効にすると、パスワードを\"*\"で隠します。"
+			}
+			if length(divprm)>=4 {
+				mes"ユーザー名\""+divprm(1)+"\"のアカウント情報を取得します。"
+				mes"データ取得中・・・"
+				ftpget divprm(1)+".dat","aqsavedata.dat",0
+				exist"aqsavedata.dat"
+				if strsize==-1 {
+					mes"ダウンロードに失敗しました。"
+				} else {
+					mes"ダウンロードが完了しました。"
+					mes"解析中・・・"
+					sdim downloadbuf
+					sdim INIKey
+					sdim INIVal
+					sdim username
+					sdim password
+					sdim regdate
+					notesel downloadbuf
+					noteload"aqsavedata.dat"
+					repeat notemax
+						sdim NoteLine
+						noteget NoteLine,cnt
+						split NoteLine,"=",INIKey,INIVal
+						switch INIKey
+							case"USERNAME":UserName=INIVal:swbreak
+							case"PASSWORD"
+								Password=INIVal
+								b64decode Password,Password
+								rc4encode Password,divprm(3)
+							swbreak
+							case"REG.DATE"
+								regdate=INIVal
+							swbreak
+						swend
+					loop
+					delete"aqsavedata.dat"
+					if Password==divprm(2) {
+							mes"ユーザー名     "+UserName
+						if instr(cmdMain,0,"-h")==-1 {
+							mes"パスワード     "+Password
+						}
+							mes"登録日時       "+regdate
+					} else {
+						mes"パスワードが違います。"
+					}
+				}
+			} else {
+				mes"コマンドの構文に誤りがあります。"
+			}
+		swbreak
+		case"remove"
+			if instr(cmdMain,0,"-?")!-1 {
+				mes"REMOVE [username] [password] [key]"
+				mes"AquaPassアカウントを削除します。"
+				mes"[username]  ユーザー名"
+				mes"[password]  パスワード"
+				mes"[key]       暗号化キー"
+				mes"(!) 一度削除すると復元はできません。"
+			}
+			if length(divprm)==4 {
+				mes"ユーザー名\""+divprm(1)+"\"のアカウントを削除します。"
+				mes"データ取得中・・・"
+				ftpget divprm(1)+".dat","aqsavedata.dat",0
+				exist"aqsavedata.dat"
+				if strsize==-1 {
+					mes"接続に失敗しました。"
+				} else {
+					mes"パスワード照合中・・・"
+					sdim downloadbuf
+					sdim INIKey
+					sdim INIVal
+					sdim username
+					sdim password
+					sdim regdate
+					notesel downloadbuf
+					noteload"aqsavedata.dat"
+					repeat notemax
+						sdim NoteLine
+						noteget NoteLine,cnt
+						split NoteLine,"=",INIKey,INIVal
+						switch INIKey
+							case"USERNAME":UserName=INIVal:swbreak
+							case"PASSWORD"
+								Password=INIVal
+								b64decode Password,Password
+								rc4encode Password,divprm(3)
+							swbreak
+							case"REG.DATE"
+								regdate=INIVal
+							swbreak
+						swend
+					loop
+					delete"aqsavedata.dat"
+					if Password==divprm(2) {
+						mes"削除中・・・"
+						ftpdelete divprm(1)+".dat"
+						mes"アカウントの削除が完了しました。"
+					} else {
+						mes"パスワードが違います。"
+					}
+				}
+			} else {
+				mes"コマンドの構文に誤りがあります。"
+			}
 		swbreak
 		case"exit"
 			end
